@@ -1,6 +1,6 @@
 ﻿namespace CarDealerApp.Server
 {
-    internal class Сar
+    internal class Car
     {
         public string Brand { get; set; }
         public ushort Year { get; set; }
