@@ -14,108 +14,130 @@ internal class Server
     }
     public void Start()
     {
-        serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
-        IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 8080);
-        serverSocket.Bind(ipEndPoint);
-        serverSocket.Listen(10);
-        Console.WriteLine("Сервер запущен. Ожидание подключений...");
-        while (true)
+        try
         {
-            Socket clientSocket = serverSocket.Accept();
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
+            IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 8080);
+            serverSocket.Bind(ipEndPoint);
+            serverSocket.Listen(10);
+            Console.WriteLine("Сервер запущен. Ожидание подключений...");
+            while (true)
+            {
+                Socket clientSocket = serverSocket.Accept();
 
-            byte[] buffer = new byte[1024];
-            int bytesRead = clientSocket.Receive(buffer);
-            byte[] requestBytes = new byte[bytesRead];
-            Array.Copy(buffer, requestBytes, bytesRead);
-            ProcessClientRequest(requestBytes, clientSocket);
+                byte[] buffer = new byte[1024];
+                int bytesRead = clientSocket.Receive(buffer);
+                byte[] requestBytes = new byte[bytesRead];
+                Array.Copy(buffer, requestBytes, bytesRead);
+                ProcessClientRequest(requestBytes, clientSocket);
 
-            clientSocket.Shutdown(SocketShutdown.Both);
-            clientSocket.Close();
+                clientSocket.Shutdown(SocketShutdown.Both);
+                clientSocket.Close();
+            }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+        
     }
     private void ProcessClientRequest(byte[] requestBytes, Socket clientSocket)
     {
-        List<Car> decodedCars = DecodeData(requestBytes);
-        List<Car> responseCars = new List<Car>();
-        string responseMessage = "";
-
-        foreach (Car car in decodedCars)
+        try
         {
-            if (car.NumberOfDoors == null)
+            List<Car> decodedCars = DecodeData(requestBytes);
+            List<Car> responseCars = new List<Car>();
+            string responseMessage = "";
+
+            foreach (Car car in decodedCars)
             {
+                if (car.NumberOfDoors == null)
+                {
+                }
+                cars.Add(car);
+                responseCars.Add(car);
             }
-            cars.Add(car);
-            responseCars.Add(car);
+            byte[] responseBytes = EncodeData(responseCars);
+            clientSocket.Send(responseBytes);
         }
-        byte[] responseBytes = EncodeData(responseCars);
-        clientSocket.Send(responseBytes);
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString()); 
+        }
     }
     private List<Car> DecodeData(byte[] dataBytes)
     {
-        List<Car> decodedCars = new List<Car>();
-
-        int index = 0;
-
-        byte header = dataBytes[index++];
-        if (header != 0x02)
+        try
         {
-        }
+            List<Car> decodedCars = new List<Car>();
 
-        byte numItems = dataBytes[index++];
+            int index = 0;
 
-        for (int i = 0; i < numItems; i++)
-        {
-            Car car = new Car();
-
-            byte marker = dataBytes[index++];
-            if (marker != 0x09)
+            byte header = dataBytes[index++];
+            if (header != 0x02)
             {
             }
 
-            byte brandLength = dataBytes[index++];
-            byte[] brandBytes = new byte[brandLength];
-            Array.Copy(dataBytes, index, brandBytes, 0, brandLength);
-            car.Brand = Encoding.ASCII.GetString(brandBytes);
-            index += brandLength;
+            byte numItems = dataBytes[index++];
 
-            byte yearMarker = dataBytes[index++];
-            if (yearMarker != 0x12)
+            for (int i = 0; i < numItems; i++)
             {
-            }
+                Car car = new Car();
 
-            byte[] yearBytes = new byte[2];
-            Array.Copy(dataBytes, index, yearBytes, 0, 2);
-            car.Year = BitConverter.ToUInt16(yearBytes, 0);
-            index += 2;
-
-            byte volumeMarker = dataBytes[index++];
-            if (volumeMarker != 0x13)
-            {
-            }
-
-            byte[] volumeBytes = new byte[4];
-            Array.Copy(dataBytes, index, volumeBytes, 0, 4);
-            car.EngineVolume = BitConverter.ToSingle(volumeBytes, 0);
-            index += 4;
-
-            if (index < dataBytes.Length && dataBytes[index] == 0x12)
-            {
-                byte doorsMarker = dataBytes[index++];
-                if (doorsMarker != 0x12)
+                byte marker = dataBytes[index++];
+                if (marker != 0x09)
                 {
                 }
 
-                byte[] doorsBytes = new byte[2];
-                Array.Copy(dataBytes, index, doorsBytes, 0, 2);
-                car.NumberOfDoors = (byte)BitConverter.ToUInt16(doorsBytes, 0);
+                byte brandLength = dataBytes[index++];
+                byte[] brandBytes = new byte[brandLength];
+                Array.Copy(dataBytes, index, brandBytes, 0, brandLength);
+                car.Brand = Encoding.ASCII.GetString(brandBytes);
+                index += brandLength;
+
+                byte yearMarker = dataBytes[index++];
+                if (yearMarker != 0x12)
+                {
+                }
+
+                byte[] yearBytes = new byte[2];
+                Array.Copy(dataBytes, index, yearBytes, 0, 2);
+                car.Year = BitConverter.ToUInt16(yearBytes, 0);
                 index += 2;
+
+                byte volumeMarker = dataBytes[index++];
+                if (volumeMarker != 0x13)
+                {
+                }
+
+                byte[] volumeBytes = new byte[4];
+                Array.Copy(dataBytes, index, volumeBytes, 0, 4);
+                car.EngineVolume = BitConverter.ToSingle(volumeBytes, 0);
+                index += 4;
+
+                if (index < dataBytes.Length && dataBytes[index] == 0x12)
+                {
+                    byte doorsMarker = dataBytes[index++];
+                    if (doorsMarker != 0x12)
+                    {
+                    }
+
+                    byte[] doorsBytes = new byte[2];
+                    Array.Copy(dataBytes, index, doorsBytes, 0, 2);
+                    car.NumberOfDoors = (byte)BitConverter.ToUInt16(doorsBytes, 0);
+                    index += 2;
+                }
+
+                decodedCars.Add(car);
             }
-
-            decodedCars.Add(car);
+            return decodedCars;
         }
-
-        return decodedCars;
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            return null;
+        }
     }
 
     private byte[] EncodeData(List<Car> cars)

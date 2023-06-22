@@ -1,0 +1,15 @@
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.csproj.AssemblyReference.cache
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.GeneratedMSBuildEditorConfig.editorconfig
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.AssemblyInfoInputs.cache
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.AssemblyInfo.cs
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.csproj.CoreCompileInputs.cache
+E:\CarDealerApp\CarDealerApp.Client\bin\Debug\net6.0\CarDealerApp.Client.exe
+E:\CarDealerApp\CarDealerApp.Client\bin\Debug\net6.0\CarDealerApp.Client.deps.json
+E:\CarDealerApp\CarDealerApp.Client\bin\Debug\net6.0\CarDealerApp.Client.runtimeconfig.json
+E:\CarDealerApp\CarDealerApp.Client\bin\Debug\net6.0\CarDealerApp.Client.dll
+E:\CarDealerApp\CarDealerApp.Client\bin\Debug\net6.0\CarDealerApp.Client.pdb
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.dll
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\refint\CarDealerApp.Client.dll
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.pdb
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\CarDealerApp.Client.genruntimeconfig.cache
+E:\CarDealerApp\CarDealerApp.Client\obj\Debug\net6.0\ref\CarDealerApp.Client.dll
