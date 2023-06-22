@@ -5,6 +5,8 @@ VisualStudioVersion = 17.6.33801.468
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarDealerApp.Server", "CarDealerApp.Server.csproj", "{34D84203-7344-4307-A7C5-E12A795CBA3E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CarDealerApp.Client", "..\CarDealerApp.Client\CarDealerApp.Client.csproj", "{80552A6B-A401-4C3C-95EA-CD62A58F061A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{34D84203-7344-4307-A7C5-E12A795CBA3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34D84203-7344-4307-A7C5-E12A795CBA3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34D84203-7344-4307-A7C5-E12A795CBA3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80552A6B-A401-4C3C-95EA-CD62A58F061A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80552A6B-A401-4C3C-95EA-CD62A58F061A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80552A6B-A401-4C3C-95EA-CD62A58F061A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80552A6B-A401-4C3C-95EA-CD62A58F061A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
