@@ -1,18 +1,16 @@
 ﻿namespace CarDealerApp.Server
 {
-    class Car
+    public class Car
     {
         public string Brand { get; set; }
         public int Year { get; set; }
         public float EngineVolume { get; set; }
-        public int? NumDoors { get; set; }
+        public int? NumberOfDoors { get; set; } // nullable int
 
-        public Car(string brand, int year, float engineVolume, int? numDoors)
+        public override string ToString()
         {
-            Brand = brand;
-            Year = year;
-            EngineVolume = engineVolume;
-            NumDoors = numDoors;
+            return $"Марка: {Brand}, Год выпуска: {Year}, Объем двигателя: {EngineVolume}, Число дверей: {(NumberOfDoors.HasValue ? NumberOfDoors.ToString() : "Не указано")}";
         }
     }
+
 }
