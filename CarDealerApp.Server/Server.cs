@@ -11,7 +11,7 @@ namespace CarDealerApp.Server
     public class Server
     {
         private const int BufferSize = 1024;
-        private const int Port = 12345;
+        private const int Port = 8080;
 
         private List<Car> carList;
         private Socket serverSocket;
@@ -57,18 +57,19 @@ namespace CarDealerApp.Server
         {
             try
             {
-                int bytesRead = clientSocket.Receive(buffer);
-                string request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                if (request.Trim() == "1")
+                while (clientSocket.Connected)
                 {
-                    SendCarData(clientSocket, choosed: 1);
+                    int bytesRead = clientSocket.Receive(buffer);
+                    string request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    if (request.Trim() == "1")
+                    {
+                        SendCarData(clientSocket, choosed: 1);
+                    }
+                    else if (request.Trim() == "2")
+                    {
+                        SendCarData(clientSocket, choosed: 2);
+                    }
                 }
-                else if (request.Trim() == "2")
-                {
-                    SendCarData(clientSocket, choosed: 2);
-                }
-
-                clientSocket.Shutdown(SocketShutdown.Send);
                 clientSocket.Shutdown(SocketShutdown.Both);
                 clientSocket.Close();
                 Console.WriteLine("Client disconnected: " + clientSocket.RemoteEndPoint);
@@ -79,18 +80,19 @@ namespace CarDealerApp.Server
             }
         }
 
+
         private byte[] GetCarDataBytes()
         {
             List<byte> bytes = new List<byte>();
-            bytes.Add(0x02); 
+            bytes.Add(0x02);
             bytes.Add((byte)carList.Count); 
 
             foreach (var car in carList)
             {
-                bytes.Add(0x09);
+                bytes.Add(0x09); 
                 byte[] brandBytes = Encoding.ASCII.GetBytes(car.Brand);
-                bytes.Add((byte)brandBytes.Length);
-                bytes.AddRange(brandBytes);
+                bytes.Add((byte)brandBytes.Length); 
+                bytes.AddRange(brandBytes); 
 
                 bytes.Add(0x12);
                 byte[] yearBytes = BitConverter.GetBytes((ushort)car.Year);
@@ -99,6 +101,13 @@ namespace CarDealerApp.Server
                 bytes.Add(0x13);
                 byte[] engineVolumeBytes = BitConverter.GetBytes(car.EngineVolume);
                 bytes.AddRange(engineVolumeBytes);
+
+                if (car.NumberOfDoors.HasValue) // Проверяем, есть ли значение числа дверей
+                {
+                    bytes.Add(0x12);
+                    byte[] doorCountBytes = BitConverter.GetBytes((ushort)car.NumberOfDoors.Value);
+                    bytes.AddRange(doorCountBytes);
+                }
             }
 
             return bytes.ToArray();

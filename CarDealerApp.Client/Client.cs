@@ -9,7 +9,7 @@ public class Client
 {
     private const int BufferSize = 1024;
     private const string ServerIp = "127.0.0.1";
-    private const int ServerPort = 12345;
+    private const int ServerPort = 8080;
 
     private Socket clientSocket;
     private byte[] buffer;
@@ -118,6 +118,12 @@ public class Client
                     index++; // Пропуск типа "4 байта с плавающей точкой"
                     car.EngineVolume = BitConverter.ToSingle(data, index);
                     index += 4;
+                    if (index < length && data[index] == 0x12) // Проверяем наличие числа дверей
+                    {
+                        index++; // Пропуск типа "2 байта целое без знака"
+                        car.NumberOfDoors = BitConverter.ToUInt16(data, index);
+                        index += 2;
+                    }
 
                     cars.Add(car);
                 }
@@ -134,6 +140,10 @@ public class Client
             Console.WriteLine("Brand: " + car.Brand);
             Console.WriteLine("Year: " + car.Year);
             Console.WriteLine("Engine Volume: " + car.EngineVolume);
+            if (car.NumberOfDoors.HasValue)
+            {
+                Console.WriteLine("Door Count: " + car.NumberOfDoors.Value);
+            }
             Console.WriteLine("-----------------------");
         }
     }

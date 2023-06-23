@@ -1,4 +1,4 @@
-﻿using CarDealerApp.Server;
+﻿namespace CarDealerApp.Server;
 
 internal class Program
 {
