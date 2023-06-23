@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -61,13 +62,22 @@ namespace CarDealerApp.Server
                 {
                     int bytesRead = clientSocket.Receive(buffer);
                     string request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    if (request.Length < 3)
                     if (request.Trim() == "1")
                     {
-                        SendCarData(clientSocket, choosed: 1);
+                        SendCarData(clientSocket, carIndex: -1);
                     }
-                    else if (request.Trim() == "2")
+                    else if (request.StartsWith("2"))
                     {
-                        SendCarData(clientSocket, choosed: 2);
+                        int carIndex = Convert.ToInt32(request.Substring(1));
+                        if (carIndex >= 0 && carIndex < carList.Count)
+                        {
+                            SendCarData(clientSocket, carIndex);
+                        }
+                        else
+                        {
+                                continue;
+                        }
                     }
                 }
                 clientSocket.Shutdown(SocketShutdown.Both);
@@ -81,13 +91,24 @@ namespace CarDealerApp.Server
         }
 
 
-        private byte[] GetCarDataBytes()
+        private byte[] GetCarDataBytes(int carIndex)
         {
+            List<Car> selectedCars = new List<Car>();
+
+            if (carIndex >= 0 && carIndex <= carList.Count)
+            {
+                selectedCars.Add(carList[carIndex]);
+            }
+            else
+            {
+                selectedCars = carList;
+            }
+
             List<byte> bytes = new List<byte>();
             bytes.Add(0x02);
-            bytes.Add((byte)carList.Count); 
+            bytes.Add((byte)selectedCars.Count);
 
-            foreach (var car in carList)
+            foreach (var car in selectedCars)
             {
                 bytes.Add(0x09); 
                 byte[] brandBytes = Encoding.ASCII.GetBytes(car.Brand);
@@ -102,7 +123,7 @@ namespace CarDealerApp.Server
                 byte[] engineVolumeBytes = BitConverter.GetBytes(car.EngineVolume);
                 bytes.AddRange(engineVolumeBytes);
 
-                if (car.NumberOfDoors.HasValue) // Проверяем, есть ли значение числа дверей
+                if (car.NumberOfDoors.HasValue)
                 {
                     bytes.Add(0x12);
                     byte[] doorCountBytes = BitConverter.GetBytes((ushort)car.NumberOfDoors.Value);
@@ -113,18 +134,10 @@ namespace CarDealerApp.Server
             return bytes.ToArray();
         }
 
-        private void SendCarData(Socket clientSocket, int choosed)
+        private void SendCarData(Socket clientSocket, int carIndex)
         {
-            if(choosed == 1)
-            {
-                byte[] data = GetCarDataBytes();
+                byte[] data = GetCarDataBytes(carIndex);
                 clientSocket.Send(data);
-            }
-            else
-            {
-                byte[] data = GetCarDataBytes();
-                clientSocket.Send(data);
-            }
         }
     }
 

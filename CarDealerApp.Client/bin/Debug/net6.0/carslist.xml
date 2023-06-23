@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Cars>
+  <Response>Brand: Nissan
+Year: 2008
+Engine Volume: 1,6
+Door Count: 4
+-----------------------
+</Response>
+  <Response>Brand: Toyota
+Year: 2010
+Engine Volume: 2
+Door Count: 4
+-----------------------
+</Response>
+  <Response>Brand: Honda
+Year: 2015
+Engine Volume: 1,8
+Door Count: 4
+-----------------------
+</Response>
+  <Response>Brand: Nissan
+Year: 2008
+Engine Volume: 1,6
+Door Count: 4
+-----------------------
+</Response>
+  <Response>Brand: Toyota
+Year: 2010
+Engine Volume: 2
+Door Count: 4
+-----------------------
+</Response>
+  <Response>Brand: Honda
+Year: 2015
+Engine Volume: 1,8
+Door Count: 4
+-----------------------
+</Response>
+  <Response>Brand: Toyota
+Year: 2010
+Engine Volume: 2
+Door Count: 4
+-----------------------
+</Response>
+</Cars>
