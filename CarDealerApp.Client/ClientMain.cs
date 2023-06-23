@@ -13,7 +13,14 @@ public class ClientMain
                 string? choose = Console.ReadLine();
                 if (choose == "1")
                 {
-                    client.ConnectToServer();
+                    try
+                    {
+                        client.ConnectToServer();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Ошибка подключения");
+                    }
                 }
                 else
                 {
