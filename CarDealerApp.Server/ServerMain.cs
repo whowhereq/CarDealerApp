@@ -1,8 +1,11 @@
-﻿internal class Program
+﻿using CarDealerApp.Server;
+
+internal class Program
 {
-    private static void Main(string[] args)
+    static void Main(string[] args)
     {
-            Server server = new Server();
-            server.Start();
+        Server server = new Server();
+        Thread serverThread = new Thread(server.Start);
+        serverThread.Start();
     }
 }

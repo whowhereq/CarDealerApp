@@ -1,106 +1,78 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Xml;
 
 namespace CarDealerApp.Client
 {
     public class Client
     {
+        private const int BufferSize = 1024;
+        private const string ServerIp = "127.0.0.1";
+        private const int ServerPort = 12345;
+
         private Socket clientSocket;
+        private byte[] buffer;
 
         public Client()
         {
-            ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            buffer = new byte[BufferSize];
         }
 
-        public Socket ClientSocket { get => clientSocket; set => clientSocket = value; }
-
-        public void Connect(string ipAddress, int port)
+        public void ConnectToServer()
         {
-            ClientSocket.Connect(ipAddress, port);
-            Console.WriteLine("Соединение установлено.");
-        }
-
-        public void RequestAllCars()
-        {
-            // Отправка запроса "спросить все"
-            byte[] requestBytes = Encoding.ASCII.GetBytes("AskAll");
-            ClientSocket.Send(requestBytes);
-
-            // Получение ответа от сервера
-            byte[] responseBytes = new byte[1024];
-            int bytesRead = ClientSocket.Receive(responseBytes);
-            byte[] responseDataBytes = new byte[bytesRead];
-            Array.Copy(responseBytes, responseDataBytes, bytesRead);
-
-            // Декодирование данных и сохранение в XML
-            XmlDocument xmlDoc = DecodeAndSaveToXml(responseDataBytes);
-
-            // Вывод данных в читаемом формате
-            Console.WriteLine("Все автомобили:\n");
-            foreach (XmlNode carNode in xmlDoc.SelectNodes("/Cars/Car"))
+            try
             {
-                string brand = carNode.SelectSingleNode("Brand").InnerText;
-                string year = carNode.SelectSingleNode("Year").InnerText;
-                string engineVolume = carNode.SelectSingleNode("EngineVolume").InnerText;
-                string numberOfDoors = carNode.SelectSingleNode("NumberOfDoors").InnerText;
+                clientSocket.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
+                Console.WriteLine("Connected to the server.");
 
-                Console.WriteLine($"Марка: {brand}");
-                Console.WriteLine($"Год выпуска: {year}");
-                Console.WriteLine($"Объем двигателя: {engineVolume}");
-                Console.WriteLine($"Число дверей: {numberOfDoors}");
-                Console.WriteLine();
+                while (true)
+                {
+                    Console.WriteLine("Enter your choice (1 - Get all cars, 2 - Get car by index):");
+                    string choice = Console.ReadLine().Trim();
+
+                    if (choice == "1" || choice == "2")
+                    {
+                        SendRequest(choice);
+                        ReceiveResponse();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid choice. Please try again.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error occurred: " + ex.Message);
+            }
+            finally
+            {
+                clientSocket.Shutdown(SocketShutdown.Both);
+                clientSocket.Close();
             }
         }
 
-        public void RequestCarByIndex(int index)
+        private void SendRequest(string choice)
         {
-            // Отправка запроса "спросить по номеру записи"
-            byte[] requestBytes = Encoding.ASCII.GetBytes($"AskByIndex:{index}");
-            ClientSocket.Send(requestBytes);
-
-            // Получение ответа от сервера
-            byte[] responseBytes = new byte[1024];
-            int bytesRead = ClientSocket.Receive(responseBytes);
-            byte[] responseDataBytes = new byte[bytesRead];
-            Array.Copy(responseBytes, responseDataBytes, bytesRead);
-
-            // Декодирование данных и сохранение в XML
-            XmlDocument xmlDoc = DecodeAndSaveToXml(responseDataBytes);
-
-            // Вывод данных в читаемом формате
-            XmlNode carNode = xmlDoc.SelectSingleNode("/Car");
-            if (carNode != null)
-            {
-                string brand = carNode.SelectSingleNode("Brand").InnerText;
-                string year = carNode.SelectSingleNode("Year").InnerText;
-                string engineVolume = carNode.SelectSingleNode("EngineVolume").InnerText;
-                string numberOfDoors = carNode.SelectSingleNode("NumberOfDoors").InnerText;
-
-                Console.WriteLine($"Марка: {brand}");
-                Console.WriteLine($"Год выпуска: {year}");
-                Console.WriteLine($"Объем двигателя: {engineVolume}");
-                Console.WriteLine($"Число дверей: {numberOfDoors}");
-            }
-            else
-            {
-                Console.WriteLine("Автомобиль с указанным номером записи не найден.");
-            }
+            byte[] data = Encoding.ASCII.GetBytes(choice);
+            clientSocket.Send(data);
         }
 
-        private XmlDocument DecodeAndSaveToXml(byte[] dataBytes)
+        private void ReceiveResponse()
         {
-            // Декодирование байтовой последовательности
-            // и сохранение в XML документ
-            // TODO: Реализовать декодирование и сохранение в XML
+            while (true)
+            {
+                int bytesRead = clientSocket.Receive(buffer);
+                string response = Encoding.ASCII.GetString(buffer, 0, bytesRead);
 
-            // Пример декодирования без сохранения в XML
-            string decodedData = Encoding.ASCII.GetString(dataBytes);
-            Console.WriteLine("Декодированные данные:");
-            Console.WriteLine(decodedData);
-
-            return new XmlDocument();
+                if (response.Length > 0)
+                {
+                    Console.WriteLine(response);
+                    break;
+                }
+            }
         }
     }
 }

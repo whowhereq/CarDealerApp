@@ -4,132 +4,159 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace CarDealerApp.Server
 {
     public class Server
     {
-        private const int Port = 1234; // Порт для прослушивания клиентских подключений
-        private List<Car> cars; // Коллекция автомобилей
+        private const int BufferSize = 1024;
+        private const int Port = 12345;
+
+        private List<Car> carList;
+        private byte[] buffer;
 
         public Server()
         {
-            cars = new List<Car>();
+            carList = new List<Car>
+        {
+            new Car { Brand = "Nissan", Year = 2008, EngineVolume = 1.6f, NumberOfDoors = 4 },
+            new Car { Brand = "Toyota", Year = 2010, EngineVolume = 2.0f, NumberOfDoors = 4 },
+            new Car { Brand = "Honda", Year = 2015, EngineVolume = 1.8f, NumberOfDoors = 4 }
+        };
+
+            buffer = new byte[BufferSize];
         }
 
         public void Start()
         {
             try
             {
-                // Создаем TcpListener для прослушивания подключений
                 TcpListener listener = new TcpListener(IPAddress.Any, Port);
                 listener.Start();
-                Console.WriteLine("Сервер запущен. Ожидание подключений...");
+                Console.WriteLine("Server started. Waiting for client connections...");
 
                 while (true)
                 {
-                    // Принимаем входящее подключение
                     TcpClient client = listener.AcceptTcpClient();
+                    Console.WriteLine("Client connected: " + client.Client.RemoteEndPoint);
 
-                    // Обрабатываем подключение в отдельном потоке
-                    System.Threading.ThreadPool.QueueUserWorkItem(HandleClient, client);
+                    HandleClient(client);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка сервера: {ex.Message}");
+                Console.WriteLine("Error occurred: " + ex.Message);
             }
         }
 
-        private void HandleClient(object obj)
+        private void HandleClient(TcpClient client)
         {
-            TcpClient client = (TcpClient)obj;
             try
             {
-                using (NetworkStream stream = client.GetStream())
+                NetworkStream stream = client.GetStream();
+
+                int bytesRead = stream.Read(buffer, 0, BufferSize);
+                string request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+
+                // Process client's request
+                if (request.Trim() == "1")
                 {
-                    // Читаем данные из сети
-                    byte[] data = new byte[1024];
-                    int bytesRead = stream.Read(data, 0, data.Length);
-
-                    // Преобразуем полученные байты в список автомобилей
-                    List<Car> receivedCars = DecodeData(data, bytesRead);
-
-                    // Добавляем полученные автомобили в общую коллекцию
-                    cars.AddRange(receivedCars);
-
-                    Console.WriteLine("Принято автомобилей: " + receivedCars.Count);
-
-                    // Отправляем ответ клиенту
-                    string response = "Данные успешно приняты";
-                    byte[] responseData = System.Text.Encoding.ASCII.GetBytes(response);
-                    stream.Write(responseData, 0, responseData.Length);
+                    // Send all cars data
+                    SendAllCarsData(stream);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка при обработке подключения: {ex.Message}");
-            }
-            finally
-            {
-                client.Close();
-            }
-        }
-
-        private List<Car> DecodeData(byte[] data, int length)
-        {
-            List<Car> decodedCars = new List<Car>();
-
-            int index = 0;
-            while (index < length)
-            {
-                // Читаем признак начала структуры
-                byte startMarker = data[index];
-                index++;
-
-                if (startMarker != 0x02)
+                else if (request.Trim() == "2")
                 {
-                    throw new InvalidDataException("Неверный признак начала структуры");
-                }
+                    // Receive car index from the client
+                    bytesRead = stream.Read(buffer, 0, BufferSize);
+                    string carIndexStr = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    int carIndex;
 
-                // Читаем количество элементов в структуре
-                byte numElements = data[index];
-                index++;
-
-                Car car = new Car();
-
-                for (int i = 0; i < numElements; i++)
-                {
-                    // Читаем тип значения
-                    byte valueType = data[index];
-                    index++;
-
-                    switch (valueType)
+                    if (int.TryParse(carIndexStr, out carIndex) && carIndex >= 0 && carIndex < carList.Count)
                     {
-                        case 0x09: // Строка
-                            int stringLength = data[index];
-                            index++;
-
-                            car.Brand = System.Text.Encoding.ASCII.GetString(data, index, stringLength);
-                            index += stringLength;
-                            break;
-                        case 0x12: // Целое без знака
-                            car.Year = BitConverter.ToUInt16(data, index);
-                            index += 2;
-                            break;
-                        case 0x13: // С плавающей точкой
-                            car.EngineVolume = BitConverter.ToSingle(data, index);
-                            index += 4;
-                            break;
-                        default:
-                            throw new InvalidDataException("Неверный тип значения");
+                        // Send car data by index
+                        SendCarData(stream, carIndex);
+                    }
+                    else
+                    {
+                        // Send error message to the client
+                        string errorMessage = "Invalid car index.";
+                        byte[] errorData = Encoding.ASCII.GetBytes(errorMessage);
+                        stream.Write(errorData, 0, errorData.Length);
                     }
                 }
 
-                decodedCars.Add(car);
+                client.Close();
+                Console.WriteLine("Client disconnected: " + client.Client.RemoteEndPoint);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error occurred while handling client: " + ex.Message);
+            }
+        }
+
+
+        private byte[] GetCarDataBytes()
+        {
+            List<byte> bytes = new List<byte>();
+
+            bytes.Add(0x02); // Start of structure
+
+            foreach (var car in carList)
+            {
+                bytes.Add(0x09); // String type
+                byte[] brandBytes = Encoding.ASCII.GetBytes(car.Brand);
+                bytes.Add((byte)brandBytes.Length); // String length
+                bytes.AddRange(brandBytes); // String value
+
+                bytes.Add(0x12); // Unsigned integer type
+                byte[] yearBytes = BitConverter.GetBytes(car.Year);
+                bytes.AddRange(yearBytes); // Unsigned integer value
+
+                bytes.Add(0x13); // Floating point type
+                byte[] engineVolumeBytes = BitConverter.GetBytes(car.EngineVolume);
+                bytes.AddRange(engineVolumeBytes); // Floating point value
+
+                bytes.Add(0x14); // Unsigned integer type
+                byte doorCount = car.NumberOfDoors.HasValue ? (byte)car.NumberOfDoors.Value : (byte)0;
+                bytes.Add(doorCount); // Unsigned integer value
             }
 
-            return decodedCars;
+            return bytes.ToArray();
+        }
+
+        private void SendAllCarsData(NetworkStream stream)
+        {
+            string message = "All Cars Data:\n";
+            int carIndex = 1;
+
+            foreach (var car in carList)
+            {
+                message += $"Car {carIndex}:\n";
+                message += $"Brand: {car.Brand}\n";
+                message += $"Year: {car.Year}\n";
+                message += $"Engine Volume: {car.EngineVolume}\n";
+                message += $"Door Count: {car.NumberOfDoors}\n";
+                message += "-----------------------\n";
+                carIndex++;
+            }
+
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            stream.Write(data, 0, data.Length);
+        }
+
+        private void SendCarData(NetworkStream stream, int carIndex)
+        {
+            Car car = carList[carIndex];
+            string message = $"Car {carIndex + 1}:\n";
+            message += $"Brand: {car.Brand}\n";
+            message += $"Year: {car.Year}\n";
+            message += $"Engine Volume: {car.EngineVolume}\n";
+            message += $"Door Count: {car.NumberOfDoors}\n";
+
+            byte[] data = Encoding.ASCII.GetBytes(message);
+            stream.Write(data, 0, data.Length);
         }
     }
+
 }
