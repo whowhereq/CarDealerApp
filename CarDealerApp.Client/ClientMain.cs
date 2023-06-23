@@ -1,4 +1,4 @@
-﻿using CarDealerApp.Client;
+﻿namespace CarDealerApp.Client;
 
 public class ClientMain
 {

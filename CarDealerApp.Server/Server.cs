@@ -14,17 +14,19 @@ namespace CarDealerApp.Server
         private const int Port = 12345;
 
         private List<Car> carList;
+        private Socket serverSocket;
         private byte[] buffer;
 
         public Server()
         {
             carList = new List<Car>
-        {
-            new Car { Brand = "Nissan", Year = 2008, EngineVolume = 1.6f, NumberOfDoors = 4 },
-            new Car { Brand = "Toyota", Year = 2010, EngineVolume = 2.0f, NumberOfDoors = 4 },
-            new Car { Brand = "Honda", Year = 2015, EngineVolume = 1.8f, NumberOfDoors = 4 }
-        };
+            {
+                new Car { Brand = "Nissan", Year = 2008, EngineVolume = 1.6f, NumberOfDoors = 4 },
+                new Car { Brand = "Toyota", Year = 2010, EngineVolume = 2.0f, NumberOfDoors = 4 },
+                new Car { Brand = "Honda", Year = 2015, EngineVolume = 1.8f, NumberOfDoors = 4 }
+            };
 
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             buffer = new byte[BufferSize];
         }
 
@@ -32,16 +34,17 @@ namespace CarDealerApp.Server
         {
             try
             {
-                TcpListener listener = new TcpListener(IPAddress.Any, Port);
-                listener.Start();
+                serverSocket.Bind(new IPEndPoint(IPAddress.Any, Port));
+                serverSocket.Listen(10);
+
                 Console.WriteLine("Server started. Waiting for client connections...");
 
                 while (true)
                 {
-                    TcpClient client = listener.AcceptTcpClient();
-                    Console.WriteLine("Client connected: " + client.Client.RemoteEndPoint);
+                    Socket clientSocket = serverSocket.Accept();
+                    Console.WriteLine("Client connected: " + clientSocket.RemoteEndPoint);
 
-                    HandleClient(client);
+                    HandleClient(clientSocket);
                 }
             }
             catch (Exception ex)
@@ -50,44 +53,25 @@ namespace CarDealerApp.Server
             }
         }
 
-        private void HandleClient(TcpClient client)
+        private void HandleClient(Socket clientSocket)
         {
             try
             {
-                NetworkStream stream = client.GetStream();
-
-                int bytesRead = stream.Read(buffer, 0, BufferSize);
+                int bytesRead = clientSocket.Receive(buffer);
                 string request = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-
-                // Process client's request
                 if (request.Trim() == "1")
                 {
-                    // Send all cars data
-                    SendAllCarsData(stream);
+                    SendCarData(clientSocket, choosed: 1);
                 }
                 else if (request.Trim() == "2")
                 {
-                    // Receive car index from the client
-                    bytesRead = stream.Read(buffer, 0, BufferSize);
-                    string carIndexStr = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                    int carIndex;
-
-                    if (int.TryParse(carIndexStr, out carIndex) && carIndex >= 0 && carIndex < carList.Count)
-                    {
-                        // Send car data by index
-                        SendCarData(stream, carIndex);
-                    }
-                    else
-                    {
-                        // Send error message to the client
-                        string errorMessage = "Invalid car index.";
-                        byte[] errorData = Encoding.ASCII.GetBytes(errorMessage);
-                        stream.Write(errorData, 0, errorData.Length);
-                    }
+                    SendCarData(clientSocket, choosed: 2);
                 }
 
-                client.Close();
-                Console.WriteLine("Client disconnected: " + client.Client.RemoteEndPoint);
+                clientSocket.Shutdown(SocketShutdown.Send);
+                clientSocket.Shutdown(SocketShutdown.Both);
+                clientSocket.Close();
+                Console.WriteLine("Client disconnected: " + clientSocket.RemoteEndPoint);
             }
             catch (Exception ex)
             {
@@ -95,67 +79,43 @@ namespace CarDealerApp.Server
             }
         }
 
-
         private byte[] GetCarDataBytes()
         {
             List<byte> bytes = new List<byte>();
-
-            bytes.Add(0x02); // Start of structure
+            bytes.Add(0x02); 
+            bytes.Add((byte)carList.Count); 
 
             foreach (var car in carList)
             {
-                bytes.Add(0x09); // String type
+                bytes.Add(0x09);
                 byte[] brandBytes = Encoding.ASCII.GetBytes(car.Brand);
-                bytes.Add((byte)brandBytes.Length); // String length
-                bytes.AddRange(brandBytes); // String value
+                bytes.Add((byte)brandBytes.Length);
+                bytes.AddRange(brandBytes);
 
-                bytes.Add(0x12); // Unsigned integer type
-                byte[] yearBytes = BitConverter.GetBytes(car.Year);
-                bytes.AddRange(yearBytes); // Unsigned integer value
+                bytes.Add(0x12);
+                byte[] yearBytes = BitConverter.GetBytes((ushort)car.Year);
+                bytes.AddRange(yearBytes);
 
-                bytes.Add(0x13); // Floating point type
+                bytes.Add(0x13);
                 byte[] engineVolumeBytes = BitConverter.GetBytes(car.EngineVolume);
-                bytes.AddRange(engineVolumeBytes); // Floating point value
-
-                bytes.Add(0x14); // Unsigned integer type
-                byte doorCount = car.NumberOfDoors.HasValue ? (byte)car.NumberOfDoors.Value : (byte)0;
-                bytes.Add(doorCount); // Unsigned integer value
+                bytes.AddRange(engineVolumeBytes);
             }
 
             return bytes.ToArray();
         }
 
-        private void SendAllCarsData(NetworkStream stream)
+        private void SendCarData(Socket clientSocket, int choosed)
         {
-            string message = "All Cars Data:\n";
-            int carIndex = 1;
-
-            foreach (var car in carList)
+            if(choosed == 1)
             {
-                message += $"Car {carIndex}:\n";
-                message += $"Brand: {car.Brand}\n";
-                message += $"Year: {car.Year}\n";
-                message += $"Engine Volume: {car.EngineVolume}\n";
-                message += $"Door Count: {car.NumberOfDoors}\n";
-                message += "-----------------------\n";
-                carIndex++;
+                byte[] data = GetCarDataBytes();
+                clientSocket.Send(data);
             }
-
-            byte[] data = Encoding.ASCII.GetBytes(message);
-            stream.Write(data, 0, data.Length);
-        }
-
-        private void SendCarData(NetworkStream stream, int carIndex)
-        {
-            Car car = carList[carIndex];
-            string message = $"Car {carIndex + 1}:\n";
-            message += $"Brand: {car.Brand}\n";
-            message += $"Year: {car.Year}\n";
-            message += $"Engine Volume: {car.EngineVolume}\n";
-            message += $"Door Count: {car.NumberOfDoors}\n";
-
-            byte[] data = Encoding.ASCII.GetBytes(message);
-            stream.Write(data, 0, data.Length);
+            else
+            {
+                byte[] data = GetCarDataBytes();
+                clientSocket.Send(data);
+            }
         }
     }
 
